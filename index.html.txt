@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>H2 Economics: Tax, Subsidy and Elasticity Simulator</title>
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --card: #ffffff;
+      --ink: #172033;
+      --muted: #617086;
+      --line: #d9e0ea;
+      --blue: #2563eb;
+      --green: #16a34a;
+      --red: #dc2626;
+      --orange: #f97316;
+      --purple: #7c3aed;
+      --shadow: 0 14px 35px rgba(23,32,51,.10);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, Arial, Helvetica, sans-serif;
+      background: linear-gradient(180deg, #eef4ff 0%, var(--bg) 45%);
+      color: var(--ink);
+    }
+
+    header {
+      padding: 28px 28px 18px;
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: clamp(1.6rem, 3vw, 2.6rem);
+      letter-spacing: -0.04em;
+    }
+
+    header p {
+      margin: 10px auto 0;
+      max-width: 920px;
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 20px;
+      padding: 18px 24px 28px;
+      max-width: 1380px;
+      margin: 0 auto;
+    }
+
+    .panel, .graph-card, .feedback-card {
+      background: rgba(255,255,255,.92);
+      border: 1px solid rgba(217,224,234,.9);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+    }
+
+    .panel {
+      padding: 18px;
+      align-self: start;
+      position: sticky;
+      top: 16px;
+    }
+
+    .section-title {
+      font-weight: 800;
+      margin: 6px 0 12px;
+      font-size: .95rem;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: #344257;
+    }
+
+    .button-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      background: #fff;
+      padding: 11px 12px;
+      border-radius: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      color: var(--ink);
+      transition: .18s ease;
+    }
+
+    button:hover { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(23,32,51,.08); }
+
+    button.active {
+      background: var(--blue);
+      color: white;
+      border-color: var(--blue);
+    }
+
+    .toggle-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .toggle-grid button {
+      font-size: .85rem;
+      padding: 9px;
+    }
+
+    .slider {
+      margin: 15px 0;
+      padding: 13px 12px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fbfcff;
+    }
+
+    .slider label {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      font-weight: 750;
+      font-size: .9rem;
+      margin-bottom: 8px;
+    }
+
+    .slider small {
+      display: block;
+      color: var(--muted);
+      line-height: 1.35;
+      margin-top: 7px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--blue);
+    }
+
+    .main {
+      display: grid;
+      gap: 18px;
+    }
+
+    .graph-card {
+      padding: 18px;
+      min-height: 620px;
+    }
+
+    .graph-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .graph-top h2 {
+      margin: 0;
+      font-size: 1.25rem;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      justify-content: flex-end;
+      font-size: .82rem;
+      color: var(--muted);
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 5px 8px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+
+    svg {
+      width: 100%;
+      height: 540px;
+      display: block;
+      background: #ffffff;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+    }
+
+    .axis { stroke: #1f2937; stroke-width: 2; }
+    .grid { stroke: #edf1f7; stroke-width: 1; }
+    .curve { fill: none; stroke-width: 3.3; stroke-linecap: round; }
+    .dash { stroke-dasharray: 8 7; }
+    .label { font-size: 13px; font-weight: 800; fill: #1f2937; }
+    .small-label { font-size: 12px; font-weight: 750; fill: #4b5563; }
+    .guide { stroke: #6b7280; stroke-width: 1.4; stroke-dasharray: 5 5; }
+    .areaTax { fill: rgba(249, 115, 22, .28); stroke: rgba(249, 115, 22, .72); stroke-width: 1.5; }
+    .areaSubsidy { fill: rgba(124, 58, 237, .24); stroke: rgba(124, 58, 237, .65); stroke-width: 1.5; }
+    .areaDWL { fill: rgba(220, 38, 38, .27); stroke: rgba(220, 38, 38, .72); stroke-width: 1.5; }
+    .areaWelfareGain { fill: rgba(22, 163, 74, .23); stroke: rgba(22, 163, 74, .65); stroke-width: 1.5; }
+    .areaCS { fill: rgba(37, 99, 235, .20); stroke: rgba(37, 99, 235, .70); stroke-width: 1.5; }
+    .areaPS { fill: rgba(22, 163, 74, .20); stroke: rgba(22, 163, 74, .70); stroke-width: 1.5; }
+
+    .feedback-card {
+      padding: 18px;
+      display: grid;
+      grid-template-columns: 1.25fr .9fr;
+      gap: 16px;
+    }
+
+    .feedback-card h3 {
+      margin: 0 0 10px;
+      font-size: 1.05rem;
+    }
+
+    .feedback-card p, .feedback-card li {
+      color: #38465a;
+      line-height: 1.5;
+      margin: 0 0 8px;
+      font-size: .96rem;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      background: #fbfcff;
+      border-radius: 16px;
+      padding: 13px;
+    }
+
+    .metric .name {
+      color: var(--muted);
+      font-size: .8rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    .metric .value {
+      font-size: 1.45rem;
+      font-weight: 900;
+      margin-top: 4px;
+    }
+
+    .note {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 16px;
+      background: #eff6ff;
+      color: #1e3a8a;
+      border: 1px solid #bfdbfe;
+      font-size: .9rem;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 980px) {
+      .app { grid-template-columns: 1fr; padding: 14px; }
+      .panel { position: static; }
+      .feedback-card { grid-template-columns: 1fr; }
+      svg { height: 480px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>H2 Economics: Demand, Supply and Elasticity Simulator</h1>
+    <p>Drag the sliders to see how elasticity affects the impact of a tax or subsidy. Use the buttons to switch between welfare effects and government revenue/expenditure effects.</p>
+  </header>
+
+  <main class="app">
+    <aside class="panel">
+      <div class="section-title">Policy choice</div>
+      <div class="button-row">
+        <button id="taxBtn" class="active">Tax</button>
+        <button id="subsidyBtn">Subsidy</button>
+      </div>
+
+      <div class="section-title">Show on graph</div>
+      <div class="toggle-grid">
+        <button id="showWelfareBtn" class="active">Welfare effects</button>
+        <button id="showGovBtn">Revenue / Expenditure</button>
+      </div>
+
+      <div class="section-title">Drag sliders</div>
+
+      <div class="slider">
+        <label>Tax / Subsidy per unit <span id="policyValue">$20</span></label>
+        <input id="policySize" type="range" min="0" max="55" step="1" value="20" />
+        <small>Higher tax or subsidy creates a larger wedge between the price consumers pay and the price producers receive.</small>
+      </div>
+
+      <div class="slider">
+        <label>Demand elasticity <span id="dElasticityLabel">Normal</span></label>
+        <input id="dElasticity" type="range" min="0" max="100" step="1" value="50" />
+        <small>Move right for more price elastic demand. Elastic demand means quantity responds more strongly to a price change.</small>
+      </div>
+
+      <div class="slider">
+        <label>Supply elasticity <span id="sElasticityLabel">Normal</span></label>
+        <input id="sElasticity" type="range" min="0" max="100" step="1" value="50" />
+        <small>Move right for more price elastic supply. Elastic supply means producers respond more strongly to price changes.</small>
+      </div>
+
+      <div class="slider">
+        <label>Demand strength <span id="dInterceptValue">120</span></label>
+        <input id="dIntercept" type="range" min="80" max="160" step="1" value="120" />
+        <small>Shifts demand up or down. This changes the original market equilibrium.</small>
+      </div>
+
+      <div class="slider">
+        <label>Supply cost level <span id="sInterceptValue">20</span></label>
+        <input id="sIntercept" type="range" min="0" max="55" step="1" value="20" />
+        <small>Shifts supply up or down. Higher cost level means the supply curve is higher.</small>
+      </div>
+
+      <div class="note">
+        Teaching note: This tool uses linear demand and supply curves. Areas are approximate visual representations for classroom learning.
+      </div>
+    </aside>
+
+    <section class="main">
+      <div class="graph-card">
+        <div class="graph-top">
+          <div>
+            <h2 id="graphTitle">Impact of an Indirect Tax</h2>
+            <p id="graphSubtitle" style="margin:6px 0 0;color:var(--muted)">Tax shifts the supply curve upward and reduces market quantity.</p>
+          </div>
+          <div class="legend">
+            <span><i class="dot" style="background:var(--blue)"></i> Demand</span>
+            <span><i class="dot" style="background:var(--green)"></i> Supply</span>
+            <span><i class="dot" style="background:var(--blue)"></i> Consumer surplus effect</span>
+            <span><i class="dot" style="background:var(--green)"></i> Producer surplus effect</span>
+            <span><i class="dot" style="background:var(--orange)"></i> Tax / Subsidy wedge</span>
+            <span><i class="dot" style="background:var(--red)"></i> DWL</span>
+          </div>
+        </div>
+        <svg id="graph" viewBox="0 0 900 540" preserveAspectRatio="none" aria-label="Demand and supply graph"></svg>
+      </div>
+
+      <div class="feedback-card">
+        <div>
+          <h3>Student feedback</h3>
+          <p id="feedbackText"></p>
+          <ul id="feedbackList"></ul>
+        </div>
+        <div>
+          <h3>Key values</h3>
+          <div class="metrics">
+            <div class="metric"><div class="name">Original Qe</div><div class="value" id="qeMetric">-</div></div>
+            <div class="metric"><div class="name">New Q</div><div class="value" id="qNewMetric">-</div></div>
+            <div class="metric"><div class="name">Original CS</div><div class="value" id="originalCsMetric">-</div></div>
+            <div class="metric"><div class="name">Final CS</div><div class="value" id="finalCsMetric">-</div></div>
+            <div class="metric"><div class="name">Original PS</div><div class="value" id="originalPsMetric">-</div></div>
+            <div class="metric"><div class="name">Final PS</div><div class="value" id="finalPsMetric">-</div></div>
+            <div class="metric"><div class="name" id="govMetricName">Tax revenue</div><div class="value" id="govMetric">-</div></div>
+            <div class="metric"><div class="name">Deadweight loss</div><div class="value" id="dwlMetric">-</div></div>
+            <div class="metric"><div class="name">Original consumer surplus</div><div class="value" id="originalCSMetric">-</div></div>
+            <div class="metric"><div class="name">Final consumer surplus</div><div class="value" id="finalCSMetric">-</div></div>
+            <div class="metric"><div class="name">Original producer surplus</div><div class="value" id="originalPSMetric">-</div></div>
+            <div class="metric"><div class="name">Final producer surplus</div><div class="value" id="finalPSMetric">-</div></div>
+            <div class="metric"><div class="name">Consumer surplus effect</div><div class="value" id="csMetric">-</div></div>
+            <div class="metric"><div class="name">Producer surplus effect</div><div class="value" id="psMetric">-</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+<script>
+const svg = document.getElementById("graph");
+
+const state = {
+  policy: "tax",
+  view: "welfare"
+};
+
+const els = {
+  taxBtn: document.getElementById("taxBtn"),
+  subsidyBtn: document.getElementById("subsidyBtn"),
+  showWelfareBtn: document.getElementById("showWelfareBtn"),
+  showGovBtn: document.getElementById("showGovBtn"),
+  policySize: document.getElementById("policySize"),
+  dElasticity: document.getElementById("dElasticity"),
+  sElasticity: document.getElementById("sElasticity"),
+  dIntercept: document.getElementById("dIntercept"),
+  sIntercept: document.getElementById("sIntercept")
+};
+
+const labels = {
+  policyValue: document.getElementById("policyValue"),
+  dElasticityLabel: document.getElementById("dElasticityLabel"),
+  sElasticityLabel: document.getElementById("sElasticityLabel"),
+  dInterceptValue: document.getElementById("dInterceptValue"),
+  sInterceptValue: document.getElementById("sInterceptValue"),
+  graphTitle: document.getElementById("graphTitle"),
+  graphSubtitle: document.getElementById("graphSubtitle"),
+  feedbackText: document.getElementById("feedbackText"),
+  feedbackList: document.getElementById("feedbackList"),
+  qeMetric: document.getElementById("qeMetric"),
+  qNewMetric: document.getElementById("qNewMetric"),
+  originalCsMetric: document.getElementById("originalCsMetric"),
+  finalCsMetric: document.getElementById("finalCsMetric"),
+  originalPsMetric: document.getElementById("originalPsMetric"),
+  finalPsMetric: document.getElementById("finalPsMetric"),
+  govMetricName: document.getElementById("govMetricName"),
+  govMetric: document.getElementById("govMetric"),
+  dwlMetric: document.getElementById("dwlMetric"),
+  originalCSMetric: document.getElementById("originalCSMetric"),
+  finalCSMetric: document.getElementById("finalCSMetric"),
+  originalPSMetric: document.getElementById("originalPSMetric"),
+  finalPSMetric: document.getElementById("finalPSMetric"),
+  csMetric: document.getElementById("csMetric"),
+  psMetric: document.getElementById("psMetric")
+};
+
+const W = 900, H = 540;
+const margin = { left: 70, right: 34, top: 32, bottom: 62 };
+const gx0 = margin.left, gx1 = W - margin.right;
+const gy0 = H - margin.bottom, gy1 = margin.top;
+const qMax = 120, pMax = 170;
+
+function x(q) { return gx0 + (q / qMax) * (gx1 - gx0); }
+function y(p) { return gy0 - (p / pMax) * (gy0 - gy1); }
+
+function fmt(v) { return Number.isFinite(v) ? Math.round(v).toString() : "-"; }
+function money(v) { return Number.isFinite(v) ? "$" + Math.round(v).toLocaleString() : "-"; }
+
+function slopeFromElasticity(value, type) {
+  // Larger value = flatter curve = more elastic
+  const t = value / 100;
+  if (type === "demand") return 2.2 - 1.65 * t;
+  return 0.55 + 1.65 * (1 - t);
+}
+
+function elasticityText(value) {
+  if (value < 33) return "Inelastic";
+  if (value > 66) return "Elastic";
+  return "Normal";
+}
+
+function linePath(fn, qStart = 0, qEnd = qMax, steps = 80) {
+  const pts = [];
+  for (let i = 0; i <= steps; i++) {
+    const q = qStart + (qEnd - qStart) * i / steps;
+    const p = fn(q);
+    pts.push(`${x(q)},${y(p)}`);
+  }
+  return "M" + pts.join(" L");
+}
+
+function intersection(dA, dB, sA, sB) {
+  // Demand: P = dA - dB Q
+  // Supply: P = sA + sB Q
+  const q = (dA - sA) / (dB + sB);
+  const p = dA - dB * q;
+  return { q: Math.max(0, Math.min(qMax, q)), p: Math.max(0, Math.min(pMax, p)) };
+}
+
+function polygon(points, cls) {
+  return `<polygon class="${cls}" points="${points.map(pt => `${x(pt.q)},${y(pt.p)}`).join(" ")}"></polygon>`;
+}
+
+function circle(q,p,fill="#111") {
+  return `<circle cx="${x(q)}" cy="${y(p)}" r="5.2" fill="${fill}" stroke="white" stroke-width="2"></circle>`;
+}
+
+function text(q,p,content,cls="small-label",dx=8,dy=-8) {
+  return `<text class="${cls}" x="${x(q)+dx}" y="${y(p)+dy}">${content}</text>`;
+}
+
+function line(q1,p1,q2,p2,cls="guide") {
+  return `<line class="${cls}" x1="${x(q1)}" y1="${y(p1)}" x2="${x(q2)}" y2="${y(p2)}"></line>`;
+}
+
+function draw() {
+  const taxOrSubsidy = +els.policySize.value;
+  const dA = +els.dIntercept.value;
+  const sA = +els.sIntercept.value;
+  const dB = slopeFromElasticity(+els.dElasticity.value, "demand");
+  const sB = slopeFromElasticity(+els.sElasticity.value, "supply");
+
+  const eq = intersection(dA, dB, sA, sB);
+
+  let qNew, pc, pp, shiftedSupplyA, govAmount, dwl, csChange, psChange;
+  
+  // Original surplus values
+  const originalCS = 0.5 * eq.q * (dA - eq.p);
+  const originalPS = 0.5 * eq.q * (eq.p - sA);
+  let originalCS, finalCS, originalPS, finalPS;
+  if (state.policy === "tax") {
+    shiftedSupplyA = sA + taxOrSubsidy;
+    const newEq = intersection(dA, dB, shiftedSupplyA, sB);
+    qNew = newEq.q;
+    pc = dA - dB * qNew;
+    pp = sA + sB * qNew;
+    govAmount = taxOrSubsidy * qNew;
+    dwl = 0.5 * taxOrSubsidy * Math.max(0, eq.q - qNew);
+
+    // Losses compared with the original free-market equilibrium.
+    csChange = -((pc - eq.p) * qNew + 0.5 * Math.max(0, pc - eq.p) * Math.max(0, eq.q - qNew));
+    psChange = -((eq.p - pp) * qNew + 0.5 * Math.max(0, eq.p - pp) * Math.max(0, eq.q - qNew));
+  } else {
+    shiftedSupplyA = sA - taxOrSubsidy;
+    const newEq = intersection(dA, dB, shiftedSupplyA, sB);
+    qNew = newEq.q;
+    pc = dA - dB * qNew;
+    pp = sA + sB * qNew;
+    govAmount = taxOrSubsidy * qNew;
+    dwl = 0.5 * taxOrSubsidy * Math.max(0, qNew - eq.q);
+
+    // Gains compared with the original free-market equilibrium.
+    csChange = (eq.p - pc) * eq.q + 0.5 * Math.max(0, eq.p - pc) * Math.max(0, qNew - eq.q);
+    psChange = (pp - eq.p) * eq.q + 0.5 * Math.max(0, pp - eq.p) * Math.max(0, qNew - eq.q);
+  }
+
+  // Original and final surplus areas.
+  // CS is the area below the demand curve and above the price consumers pay.
+  // PS is the area above the supply curve and below the price producers receive.
+  originalCS = 0.5 * Math.max(0, dA - eq.p) * eq.q;
+  finalCS = 0.5 * Math.max(0, dA - pc) * qNew;
+  originalPS = 0.5 * Math.max(0, eq.p - sA) * eq.q;
+  finalPS = 0.5 * Math.max(0, pp - sA) * qNew;
+
+  labels.policyValue.textContent = "$" + taxOrSubsidy;
+  labels.dElasticityLabel.textContent = elasticityText(+els.dElasticity.value);
+  labels.sElasticityLabel.textContent = elasticityText(+els.sElasticity.value);
+  labels.dInterceptValue.textContent = dA;
+  labels.sInterceptValue.textContent = sA;
+
+  labels.graphTitle.textContent = state.policy === "tax" ? "Impact of an Indirect Tax" : "Impact of a Subsidy";
+  labels.graphSubtitle.textContent = state.policy === "tax"
+    ? "Tax shifts the supply curve upward and reduces market quantity."
+    : "Subsidy shifts the supply curve downward and increases market quantity.";
+
+  const finalCS = 0.5 * qNew * (dA - pc);
+  const finalPS = 0.5 * qNew * (pp - sA);
+
+  labels.qeMetric.textContent = fmt(eq.q);
+  labels.qNewMetric.textContent = fmt(qNew);
+  labels.originalCsMetric.textContent = money(originalCS);
+  labels.finalCsMetric.textContent = money(finalCS);
+  labels.originalPsMetric.textContent = money(originalPS);
+  labels.finalPsMetric.textContent = money(finalPS);
+  labels.govMetricName.textContent = state.policy === "tax" ? "Tax revenue" : "Govt expenditure";
+  labels.govMetric.textContent = money(govAmount);
+  labels.dwlMetric.textContent = money(dwl);
+  labels.originalCSMetric.textContent = money(originalCS);
+  labels.finalCSMetric.textContent = money(finalCS);
+  labels.originalPSMetric.textContent = money(originalPS);
+  labels.finalPSMetric.textContent = money(finalPS);
+
+  labels.csMetric.textContent = (csChange >= 0 ? "+" : "−") + money(Math.abs(csChange));
+  labels.psMetric.textContent = (psChange >= 0 ? "+" : "−") + money(Math.abs(psChange));
+
+  const d = q => dA - dB * q;
+  const s = q => sA + sB * q;
+  const sShift = q => shiftedSupplyA + sB * q;
+
+  let markup = "";
+
+  // grid
+  for (let q = 0; q <= qMax; q += 20) markup += `<line class="grid" x1="${x(q)}" y1="${gy1}" x2="${x(q)}" y2="${gy0}"></line>`;
+  for (let p = 0; p <= pMax; p += 20) markup += `<line class="grid" x1="${gx0}" y1="${y(p)}" x2="${gx1}" y2="${y(p)}"></line>`;
+
+  // areas
+  if (taxOrSubsidy > 0) {
+    if (state.view === "gov") {
+      markup += polygon([
+        {q: 0, p: pc}, {q: qNew, p: pc}, {q: qNew, p: pp}, {q: 0, p: pp}
+      ], state.policy === "tax" ? "areaTax" : "areaSubsidy");
+    } else {
+      if (state.policy === "tax") {
+        // Consumer surplus loss: price rises from Pe to Pc and quantity falls from Qe to Qt.
+        markup += polygon([
+          {q: 0, p: pc}, {q: qNew, p: pc}, {q: eq.q, p: eq.p}, {q: 0, p: eq.p}
+        ], "areaCS");
+
+        // Producer surplus loss: producers receive Pp instead of Pe and sell fewer units.
+        markup += polygon([
+          {q: 0, p: eq.p}, {q: eq.q, p: eq.p}, {q: qNew, p: pp}, {q: 0, p: pp}
+        ], "areaPS");
+
+        markup += polygon([
+          {q: qNew, p: d(qNew)}, {q: eq.q, p: d(eq.q)}, {q: eq.q, p: s(eq.q)}, {q: qNew, p: s(qNew)}
+        ], "areaDWL");
+      } else {
+        // Consumer surplus gain: consumers pay Pc instead of Pe and consume more units.
+        markup += polygon([
+          {q: 0, p: eq.p}, {q: eq.q, p: eq.p}, {q: qNew, p: pc}, {q: 0, p: pc}
+        ], "areaCS");
+
+        // Producer surplus gain: producers receive Pp instead of Pe and sell more units.
+        markup += polygon([
+          {q: 0, p: pp}, {q: qNew, p: pp}, {q: eq.q, p: eq.p}, {q: 0, p: eq.p}
+        ], "areaPS");
+
+        markup += polygon([
+          {q: eq.q, p: d(eq.q)}, {q: qNew, p: d(qNew)}, {q: qNew, p: s(qNew)}, {q: eq.q, p: s(eq.q)}
+        ], "areaDWL");
+      }
+    }
+  }
+
+  // curves
+  markup += `<path class="curve" d="${linePath(d)}" stroke="var(--blue)"></path>`;
+  markup += `<path class="curve" d="${linePath(s)}" stroke="var(--green)"></path>`;
+  markup += `<path class="curve dash" d="${linePath(sShift)}" stroke="${state.policy === "tax" ? "var(--orange)" : "var(--purple)"}"></path>`;
+
+  // axes
+  markup += `<line class="axis" x1="${gx0}" y1="${gy0}" x2="${gx1}" y2="${gy0}"></line>`;
+  markup += `<line class="axis" x1="${gx0}" y1="${gy0}" x2="${gx0}" y2="${gy1}"></line>`;
+  markup += `<text class="label" x="${gx1-70}" y="${gy0+42}">Quantity</text>`;
+  markup += `<text class="label" x="${gx0-54}" y="${gy1+8}">Price</text>`;
+
+  // guides and points
+  markup += line(eq.q, 0, eq.q, eq.p);
+  markup += line(0, eq.p, eq.q, eq.p);
+  markup += circle(eq.q, eq.p, "#111827");
+  markup += text(eq.q, eq.p, "E₀", "label", 8, -10);
+
+  markup += line(qNew, 0, qNew, pc);
+  markup += line(0, pc, qNew, pc);
+  markup += line(0, pp, qNew, pp);
+  markup += circle(qNew, pc, state.policy === "tax" ? "#f97316" : "#7c3aed");
+  markup += circle(qNew, pp, state.policy === "tax" ? "#f97316" : "#7c3aed");
+
+  markup += text(qNew, pc, "Pc", "small-label", 8, -8);
+  markup += text(qNew, pp, "Pp", "small-label", 8, 16);
+  markup += `<text class="small-label" x="${x(eq.q)-12}" y="${gy0+22}">Qe</text>`;
+  markup += `<text class="small-label" x="${x(qNew)-16}" y="${gy0+42}">${state.policy === "tax" ? "Qt" : "Qs"}</text>`;
+
+  // curve labels
+  markup += text(10, d(10), "D = MPB", "label", 6, -8);
+  markup += text(86, s(86), "S = MPC", "label", 6, -8);
+  markup += text(72, sShift(72), state.policy === "tax" ? "S + tax" : "S - subsidy", "label", 6, -8);
+
+  // wedge label
+  if (taxOrSubsidy > 0) {
+    markup += `<line x1="${x(qNew)}" y1="${y(pc)}" x2="${x(qNew)}" y2="${y(pp)}" stroke="#111827" stroke-width="2.2"></line>`;
+    markup += text(qNew, (pc+pp)/2, state.policy === "tax" ? "tax wedge" : "subsidy wedge", "small-label", 10, 4);
+  }
+
+  // area labels
+  if (state.view === "gov" && taxOrSubsidy > 0) {
+    markup += text(qNew/2, (pc+pp)/2, state.policy === "tax" ? "Tax revenue" : "Govt expenditure", "label", -42, 4);
+  }
+  if (state.view === "welfare" && taxOrSubsidy > 0) {
+    const midQ = state.policy === "tax" ? (qNew + eq.q) / 2 : (eq.q + qNew) / 2;
+    const midP = (d(midQ) + s(midQ)) / 2;
+    markup += text(Math.max(6, qNew * 0.38), (pc + eq.p) / 2, state.policy === "tax" ? "CS loss" : "CS gain", "label", -18, 4);
+    markup += text(Math.max(6, qNew * 0.38), (pp + eq.p) / 2, state.policy === "tax" ? "PS loss" : "PS gain", "label", -18, 4);
+    markup += text(midQ, midP, "DWL", "label", -10, 4);
+  }
+
+  svg.innerHTML = markup;
+
+  const demandDescriptor = elasticityText(+els.dElasticity.value).toLowerCase();
+  const supplyDescriptor = elasticityText(+els.sElasticity.value).toLowerCase();
+
+  if (state.policy === "tax") {
+    labels.feedbackText.textContent = "An indirect tax increases the cost of production, so the supply curve shifts upward by the amount of the tax. Consumers pay a higher price, producers receive a lower price, and the quantity traded falls.";
+    labels.feedbackList.innerHTML = `
+      <li>Original equilibrium is at Qe = ${fmt(eq.q)}. After tax, quantity falls to Qt = ${fmt(qNew)}.</li>
+      <li>Original CS = ${money(originalCS)} and final CS = ${money(finalCS)}.</li>
+      <li>Original PS = ${money(originalPS)} and final PS = ${money(finalPS)}.</li>
+      <li>Original CS = ${money(originalCS)} and final CS = ${money(finalCS)}.</li>
+      <li>Original PS = ${money(originalPS)} and final PS = ${money(finalPS)}.</li>
+      <li>Consumer surplus changes by ${labels.csMetric.textContent}; producer surplus changes by ${labels.psMetric.textContent}.</li>
+      <li>Government tax revenue = tax per unit × quantity sold = ${money(govAmount)}.</li>
+      <li>Deadweight loss appears because mutually beneficial trades between Qt and Qe no longer occur.</li>
+      <li>With ${demandDescriptor} demand and ${supplyDescriptor} supply, the burden depends on relative elasticity.</li>
+    `;
+  } else {
+    labels.feedbackText.textContent = "A subsidy lowers the effective cost of production, so the supply curve shifts downward by the amount of the subsidy. Consumers pay a lower price, producers receive a higher price, and the quantity traded rises.";
+    labels.feedbackList.innerHTML = `
+      <li>Original equilibrium is at Qe = ${fmt(eq.q)}. After subsidy, quantity rises to Qs = ${fmt(qNew)}.</li>
+      <li>Consumer surplus changes by ${labels.csMetric.textContent}; producer surplus changes by ${labels.psMetric.textContent}.</li>
+      <li>Government expenditure = subsidy per unit × quantity sold = ${money(govAmount)}.</li>
+      <li>Deadweight loss can arise because extra units beyond Qe cost more to society than consumers are willing to pay.</li>
+      <li>With ${demandDescriptor} demand and ${supplyDescriptor} supply, the effect on quantity depends on responsiveness to price changes.</li>
+    `;
+  }
+}
+
+function setPolicy(policy) {
+  state.policy = policy;
+  els.taxBtn.classList.toggle("active", policy === "tax");
+  els.subsidyBtn.classList.toggle("active", policy === "subsidy");
+  draw();
+}
+
+function setView(view) {
+  state.view = view;
+  els.showWelfareBtn.classList.toggle("active", view === "welfare");
+  els.showGovBtn.classList.toggle("active", view === "gov");
+  draw();
+}
+
+els.taxBtn.addEventListener("click", () => setPolicy("tax"));
+els.subsidyBtn.addEventListener("click", () => setPolicy("subsidy"));
+els.showWelfareBtn.addEventListener("click", () => setView("welfare"));
+els.showGovBtn.addEventListener("click", () => setView("gov"));
+
+[els.policySize, els.dElasticity, els.sElasticity, els.dIntercept, els.sIntercept].forEach(input => {
+  input.addEventListener("input", draw);
+});
+
+draw();
+</script>
+</body>
+</html>
