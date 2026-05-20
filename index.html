@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>H2 Economics Surplus Preview</title>
+<title>H1 H2 Economics: Effects of Indirect Tax</title>
 <style>
 body{font-family:Arial,sans-serif;background:#f4f7fb;margin:0;padding:20px;color:#1f2937}
 .container{max-width:1380px;margin:auto}
@@ -14,6 +14,9 @@ h1{text-align:center;margin-top:0}
 label{font-weight:bold}
 .layout{display:grid;grid-template-columns:1fr 320px;gap:18px;align-items:start}
 svg{width:100%;height:620px;border:1px solid #d1d5db;border-radius:14px;background:white}
+input[type="range"]{accent-color:#2563eb;cursor:pointer}
+#graph polygon,#graph line,#graph circle,#graph text{transition:all .18s ease-out}
+#miniSurplusPanel svg polygon,.explain-panel svg rect{transition:all .18s ease-out}
 .metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:20px}
 .metric{background:#eef2ff;padding:14px;border-radius:12px;text-align:center}
 .metric h3{margin:0;font-size:14px;color:#4b5563}
@@ -38,16 +41,19 @@ svg{width:100%;height:620px;border:1px solid #d1d5db;border-radius:14px;backgrou
 <body>
 <div class="container">
 <div class="card">
-<h1>H2 Economics: Consumer & Producer Surplus</h1>
-<p class="subtitle">Indirect tax: original and final surplus areas with lost surplus split into CS and PS portions.</p>
+<h1>H1 H2 Economics: Effects of Indirect Tax</h1>
 <div class="controls">
 <div>
 <label>Tax per unit: <span id="taxLabel"></span></label>
-<input type="range" id="tax" min="0" max="40" value="20" style="width:100%">
+<input type="range" id="tax" min="0" max="40" step="0.1" value="20" style="width:100%">
 </div>
 <div>
-<label>Demand Elasticity: <span id="elasticityLabel"></span></label>
-<input type="range" id="elasticity" min="1" max="10" value="5" style="width:100%">
+<label>Price Elasticity of Demand (PED): <span id="elasticityLabel"></span></label>
+<input type="range" id="elasticity" min="0.1" max="2.0" step="0.01" value="1.0" style="width:100%">
+<div style="display:flex;justify-content:space-between;font-size:12px;color:#64748b;margin-top:4px;">
+<span>0.1 (Very Inelastic)</span>
+<span>2.0 (Very Elastic)</span>
+</div>
 </div>
 </div>
 <div class="legend">
@@ -60,31 +66,34 @@ svg{width:100%;height:620px;border:1px solid #d1d5db;border-radius:14px;backgrou
 <div class="layout">
 <div>
 <svg id="graph" viewBox="0 0 900 620"></svg>
-<div class="metric-grid">
-<div class="metric"><h3>Original CS</h3><p id="ocs"></p></div>
-<div class="metric"><h3>Final CS</h3><p id="fcs"></p></div>
-<div class="metric"><h3>Original PS</h3><p id="ops"></p></div>
-<div class="metric"><h3>Final PS</h3><p id="fps"></p></div>
+<div class="bottom-panel" style="margin-top:18px;background:#f8fafc;border:1px solid #dbe4ee;border-radius:18px;padding:18px;">
+<h2 style="margin:0 0 14px;font-size:20px;color:#1e293b">Original vs Final Surplus Comparison</h2>
+<p style="margin:-6px 0 14px;color:#64748b;font-size:14px;">The mini-diagrams below resize automatically, so smaller surplus values appear as visibly smaller shaded areas.</p>
+<div id="miniSurplusPanel" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;"></div>
 </div>
 </div>
 <div class="explain-panel">
 <div class="info-box consumer">
 <h3>What consumers pay</h3>
+<div id="consumerMini" style="margin-bottom:10px;"></div>
 <p id="consumerExplain"></p>
 <p class="formula" id="consumerFormula"></p>
 </div>
 <div class="info-box producer">
 <h3>What producers receive</h3>
+<div id="producerMini" style="margin-bottom:10px;"></div>
 <p id="producerExplain"></p>
 <p class="formula" id="producerFormula"></p>
 </div>
 <div class="info-box gov">
 <h3>What government receives</h3>
+<div id="govMini" style="margin-bottom:10px;"></div>
 <p id="govExplain"></p>
 <p class="formula" id="govFormula"></p>
 </div>
 <div class="info-box dwl">
 <h3>Deadweight loss area</h3>
+<div id="dwlMini" style="margin-bottom:10px;"></div>
 <p id="dwlExplain"></p>
 <p class="formula" id="dwlFormula"></p>
 </div>
@@ -106,7 +115,9 @@ const tax=+taxSlider.value;
 const elasticity=+elasticitySlider.value;
 
 const demandIntercept=120;
-const demandSlope=elasticity*0.8;
+// Lower PED should produce a steeper demand curve.
+// Higher PED should produce a flatter demand curve.
+const demandSlope=2.4/elasticity;
 const supplyIntercept=20;
 const supplySlope=1;
 
@@ -127,7 +138,7 @@ const fallQ=Math.max(0,qEq-qTax);
 
 function x(q){return 90+q*6}
 function y(p){return 540-p*3.65}
-function money(v){return '$'+Math.round(v).toLocaleString()}
+function money(v){return '$'+(Math.round(v*10)/10).toLocaleString()}
 function num(v){return Math.round(v*10)/10}
 
 svg.innerHTML=`
@@ -196,11 +207,129 @@ svg.innerHTML=`
 `;
 
 document.getElementById('taxLabel').textContent=money(tax);
-document.getElementById('elasticityLabel').textContent=elasticity;
-document.getElementById('ocs').textContent=money(originalCS);
-document.getElementById('fcs').textContent=money(finalCS);
-document.getElementById('ops').textContent=money(originalPS);
-document.getElementById('fps').textContent=money(finalPS);
+document.getElementById('elasticityLabel').textContent=elasticity.toFixed(2);
+const sharedVisualMax=Math.max(originalCS,finalCS,originalPS,finalPS,pc*qTax,pp*qTax,taxRevenue,dwl,1);
+const maxSurplus=sharedVisualMax;
+function miniCard(title,value,type,period){
+  const isCS=type==='cs';
+  const isFinal=period==='final';
+  const colour=isCS?'#2563eb':'#16a34a';
+  const fill=isCS?'rgba(37,99,235,0.50)':'rgba(22,163,74,0.50)';
+  const border=isCS?'#bfdbfe':'#86efac';
+
+  const mx0=30, mx1=165, my0=95, my1=18;
+  const mqMax=120, mpMax=130;
+  function mx(q){return mx0+(q/mqMax)*(mx1-mx0)}
+  function my(p){return my0-(p/mpMax)*(my0-my1)}
+  const q= isFinal ? qTax : qEq;
+  const price= isFinal ? (isCS ? pc : pp) : pEq;
+
+  const demandPath=`M${mx(0)},${my(demandIntercept)} L${mx(120)},${my(demandIntercept-demandSlope*120)}`;
+  const supplyPath=`M${mx(0)},${my(supplyIntercept)} L${mx(120)},${my(supplyIntercept+supplySlope*120)}`;
+  const taxSupplyPath=`M${mx(0)},${my(supplyIntercept+tax)} L${mx(120)},${my(supplyIntercept+tax+supplySlope*120)}`;
+  const surplusPoints=isCS
+    ? `${mx(0)},${my(demandIntercept)} ${mx(q)},${my(price)} ${mx(0)},${my(price)}`
+    : `${mx(0)},${my(supplyIntercept)} ${mx(q)},${my(price)} ${mx(0)},${my(price)}`;
+
+  return `
+  <div style="background:white;border:1px solid ${border};border-radius:16px;padding:14px;">
+    <h3 style="margin:0 0 8px;color:${colour};font-size:15px;">${title}</h3>
+    <svg viewBox="0 0 180 120" style="width:100%;height:130px;border:1px solid #e5e7eb;border-radius:12px;background:#fff;">
+      <line x1="${mx0}" y1="${my0}" x2="${mx1}" y2="${my0}" stroke="#94a3b8" stroke-width="1.4"></line>
+      <line x1="${mx0}" y1="${my0}" x2="${mx0}" y2="${my1}" stroke="#94a3b8" stroke-width="1.4"></line>
+      <polygon points="${surplusPoints}" fill="${fill}" stroke="${colour}" stroke-width="1.7"></polygon>
+      <path d="${demandPath}" stroke="#2563eb" stroke-width="2.2" fill="none"></path>
+      <path d="${supplyPath}" stroke="#16a34a" stroke-width="2.2" fill="none"></path>
+      ${isFinal ? `<path d="${taxSupplyPath}" stroke="#f97316" stroke-width="2.2" stroke-dasharray="5 4" fill="none"></path>` : ``}
+      <line x1="${mx(q)}" y1="${my0}" x2="${mx(q)}" y2="${my(price)}" stroke="#64748b" stroke-dasharray="4 4" stroke-width="1"></line>
+      <line x1="${mx0}" y1="${my(price)}" x2="${mx(q)}" y2="${my(price)}" stroke="#64748b" stroke-dasharray="4 4" stroke-width="1"></line>
+      <circle cx="${mx(q)}" cy="${my(price)}" r="3.2" fill="#111827" stroke="white" stroke-width="1"></circle>
+      <text x="${mx1-32}" y="112" font-size="9" fill="#64748b">Quantity</text>
+      <text x="3" y="24" font-size="9" fill="#64748b">Price</text>
+      <text x="${mx(8)}" y="${my(demandIntercept-demandSlope*8)-5}" font-size="9" font-weight="bold" fill="#2563eb">D</text>
+      <text x="${mx(90)}" y="${my(supplyIntercept+supplySlope*90)-4}" font-size="9" font-weight="bold" fill="#16a34a">S</text>
+      ${isFinal ? `<text x="${mx(82)}" y="${my(supplyIntercept+tax+supplySlope*82)-5}" font-size="9" font-weight="bold" fill="#f97316">S+tax</text>` : ``}
+      <text x="${mx(q)-7}" y="108" font-size="9" font-weight="bold" fill="#334155">${isFinal?'Qt':'Qe'}</text>
+      <text x="8" y="${my(price)+3}" font-size="9" font-weight="bold" fill="#334155">${isFinal?(isCS?'Pc':'Pp'):'Pe'}</text>
+    </svg>
+    <p style="font-size:22px;font-weight:bold;color:#1e293b;margin:8px 0 0">${money(value)}</p>
+  </div>`;
+}
+
+document.getElementById('miniSurplusPanel').innerHTML=
+  miniCard('Original Consumer Surplus',originalCS,'cs','original')+
+  miniCard('Final Consumer Surplus',finalCS,'cs','final')+
+  miniCard('Original Producer Surplus',originalPS,'ps','original')+
+  miniCard('Final Producer Surplus',finalPS,'ps','final');
+
+function rightMiniGraph(kind){
+  const mx0=28, mx1=165, my0=95, my1=15;
+  const mqMax=120, mpMax=130;
+  function mx(q){return mx0+(q/mqMax)*(mx1-mx0)}
+  function my(p){return my0-(p/mpMax)*(my0-my1)}
+
+  const demandPath=`M${mx(0)},${my(demandIntercept)} L${mx(120)},${my(demandIntercept-demandSlope*120)}`;
+  const supplyPath=`M${mx(0)},${my(supplyIntercept)} L${mx(120)},${my(supplyIntercept+supplySlope*120)}`;
+  const taxSupplyPath=`M${mx(0)},${my(supplyIntercept+tax)} L${mx(120)},${my(supplyIntercept+tax+supplySlope*120)}`;
+
+  let area="";
+  let boxText="";
+  let colour="#2563eb";
+  if(kind==='consumer'){
+    colour="#2563eb";
+    area=`<polygon points="${mx(0)},${my(pc)} ${mx(qTax)},${my(pc)} ${mx(qTax)},${my(0)} ${mx(0)},${my(0)}" fill="rgba(37,99,235,0.28)" stroke="#2563eb" stroke-width="1.5"></polygon>`;
+    boxText=`Pc × Qt = ${money(pc*qTax)}`;
+  }
+  if(kind==='producer'){
+    colour="#16a34a";
+    area=`<polygon points="${mx(0)},${my(pp)} ${mx(qTax)},${my(pp)} ${mx(qTax)},${my(0)} ${mx(0)},${my(0)}" fill="rgba(22,163,74,0.28)" stroke="#16a34a" stroke-width="1.5"></polygon>`;
+    boxText=`Pp × Qt = ${money(pp*qTax)}`;
+  }
+  if(kind==='government'){
+    colour="#f97316";
+    area=`<polygon points="${mx(0)},${my(pc)} ${mx(qTax)},${my(pc)} ${mx(qTax)},${my(pp)} ${mx(0)},${my(pp)}" fill="rgba(249,115,22,0.30)" stroke="#f97316" stroke-width="1.5"></polygon>`;
+    boxText=`Tax × Qt = ${money(taxRevenue)}`;
+  }
+  if(kind==='dwl'){
+    colour="#7c3aed";
+    area=`
+    <polygon points="${mx(qTax)},${my(pc)} ${mx(qEq)},${my(pEq)} ${mx(qTax)},${my(pEq)}" fill="rgba(37,99,235,0.35)" stroke="#2563eb" stroke-width="1.2"></polygon>
+    <polygon points="${mx(qTax)},${my(pp)} ${mx(qTax)},${my(pEq)} ${mx(qEq)},${my(pEq)}" fill="rgba(22,163,74,0.35)" stroke="#16a34a" stroke-width="1.2"></polygon>`;
+    boxText=`DWL = ${money(dwl)}`;
+  }
+
+  return `
+  <svg viewBox="0 0 180 120" style="width:100%;height:118px;border:1px solid #e5e7eb;border-radius:12px;background:white;">
+    <line x1="${mx0}" y1="${my0}" x2="${mx1}" y2="${my0}" stroke="#94a3b8" stroke-width="1.4"></line>
+    <line x1="${mx0}" y1="${my0}" x2="${mx0}" y2="${my1}" stroke="#94a3b8" stroke-width="1.4"></line>
+    ${area}
+    <path d="${demandPath}" stroke="#2563eb" stroke-width="2" fill="none"></path>
+    <path d="${supplyPath}" stroke="#16a34a" stroke-width="2" fill="none"></path>
+    <path d="${taxSupplyPath}" stroke="#f97316" stroke-width="2" stroke-dasharray="5 4" fill="none"></path>
+
+    <line x1="${mx(qTax)}" y1="${my0}" x2="${mx(qTax)}" y2="${my(pc)}" stroke="#64748b" stroke-dasharray="4 4" stroke-width="1"></line>
+    <line x1="${mx0}" y1="${my(pc)}" x2="${mx(qTax)}" y2="${my(pc)}" stroke="#ef4444" stroke-dasharray="4 4" stroke-width="1"></line>
+    <line x1="${mx0}" y1="${my(pp)}" x2="${mx(qTax)}" y2="${my(pp)}" stroke="#ef4444" stroke-dasharray="4 4" stroke-width="1"></line>
+
+    <circle cx="${mx(qTax)}" cy="${my(pc)}" r="3" fill="#f97316" stroke="white" stroke-width="1"></circle>
+    <circle cx="${mx(qTax)}" cy="${my(pp)}" r="3" fill="#f97316" stroke="white" stroke-width="1"></circle>
+
+    <text x="${mx1-30}" y="112" font-size="9" fill="#64748b">Quantity</text>
+    <text x="3" y="23" font-size="9" fill="#64748b">Price</text>
+    <text x="${mx(qTax)-7}" y="108" font-size="9" font-weight="bold" fill="#334155">Qt</text>
+    <text x="8" y="${my(pc)+3}" font-size="9" font-weight="bold" fill="#dc2626">Pc</text>
+    <text x="8" y="${my(pp)+3}" font-size="9" font-weight="bold" fill="#dc2626">Pp</text>
+    <text x="${mx(96)}" y="${my(demandIntercept-demandSlope*96)+10}" font-size="9" font-weight="bold" fill="#2563eb">D</text>
+    <text x="${mx(91)}" y="${my(supplyIntercept+supplySlope*91)-4}" font-size="9" font-weight="bold" fill="#16a34a">S</text>
+    <text x="${mx(78)}" y="${my(supplyIntercept+tax+supplySlope*78)-4}" font-size="9" font-weight="bold" fill="#f97316">S+tax</text>
+    <text x="${mx(62)}" y="${my0-8}" font-size="10" font-weight="bold" fill="${colour}">${boxText}</text>
+  </svg>`;
+}
+
+document.getElementById('consumerMini').innerHTML=rightMiniGraph('consumer');
+document.getElementById('producerMini').innerHTML=rightMiniGraph('producer');
+document.getElementById('govMini').innerHTML=rightMiniGraph('government');
+document.getElementById('dwlMini').innerHTML=rightMiniGraph('dwl');
 
 document.getElementById('consumerExplain').innerHTML=`Consumers pay the higher price <strong>Pc = ${money(pc)}</strong> after the tax. Compared with the original price <strong>Pe = ${money(pEq)}</strong>, consumers pay more per unit and buy fewer units.`;
 document.getElementById('consumerFormula').textContent=`Consumer payment = Pc × Qt = ${money(pc)} × ${num(qTax)}`;
